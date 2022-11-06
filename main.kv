@@ -1,0 +1,190 @@
+#: import Animation kivy.animation.Animation
+#: import Clock kivy.clock.Clock
+
+<ListScreen>:
+    MDBoxLayout:    
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Mem-Chat"
+        MDScrollView:
+            MDList:
+                id: chat_list
+
+<ChatScreen>:
+    on_pre_enter: title_bar.title = self.chatter
+    FitImage:
+        source: "./wallpaper.jpg"
+    MDSpinner:
+        size_hint: None, None
+        size: root.width/4, root.height/4
+        pos_hint: {'center_x': .5, 'center_y': .5}
+        active: True
+        id: spinner
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            md_bg_color: "red"
+            c: "red"
+            id: title_bar
+            left_action_items: [["arrow-left", lambda x: root.back(app.screen_manager)]]
+        MDBoxLayout:
+            padding: 20
+            spacing: 20
+            size_hint_y: None
+            adaptive_height: True
+            MDTextField:
+                id: message
+                hint_text: "Jouw bericht:"
+                mode: "round"
+                focus: True
+                #multiline: True
+                on_text_validate:
+                    root.send(self.text)
+                    self.text = ""
+                    Clock.schedule_once(lambda x: app.set_focus(self))
+            MDFillRoundFlatIconButton:
+                icon: "send"
+                text: "Send"
+                pos_hint: {"center_x": .5, "center_y": .5}
+                on_release:
+                    root.send(message.text)
+                    message.text = ""
+                    Clock.schedule_once(lambda x: app.set_focus(message))
+        MDScrollView:
+            MDBoxLayout:
+                orientation: "vertical"
+                id: content
+                adaptive_height: True
+                padding: 20
+                spacing: 20
+
+<HomeScreen>:
+    on_enter:
+        a = (Animation(duration=.5, opacity=1)+Animation(duration=2, opacity=0)+Animation(duration=2, opacity=1)+Animation(duration=.5, opacity=1))
+        a.repeat = True
+        a.start(hallo_label)
+        Clock.schedule_once(lambda x: app.set_focus(username), 1)
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Mem-Chat"
+        MDFloatLayout:
+            MDCard:
+                size_hint: None, None
+                size: 250, 350
+                elevation: 0
+                radius: 20
+                md_bg_color: app.theme_cls.primary_color[0], app.theme_cls.primary_color[1], app.theme_cls.primary_color[2], .5
+                pos_hint: {"center_x": .5, "center_y": .5}
+                #ripple_behavior: True
+                MDBoxLayout:
+                    orientation: "vertical"
+                    padding: 20
+                    spacing: 20
+                    MDLabel:
+                        bold: True
+                        id: hallo_label
+                        text: "Hallo!"
+                        theme_text_color: "Custom"
+                        text_color: "white"
+                        halign: "center"
+                        font_size: 50
+                        size_hint_y: None
+                        height: 75
+                    MDTextField:
+                        id: username
+                        hint_text: "Gebruikersnaam:"
+                        mode: "fill"
+                        focus: False
+                        icon_left: "account"
+                        on_text_validate:
+                            password.focus = True
+                            self.focus = False
+                    MDRelativeLayout:
+                        size_hint_y: None
+                        height: password.height
+                        MDTextField:
+                            id: password
+                            hint_text: "Wachtwoord:"
+                            text: ""
+                            password: True
+                            focus: False
+                            mode: "fill"
+                            on_text_validate: app.check_infos(username.text, self.text, username, self)
+                            icon_left: "key-variant"
+                        MDIconButton:
+                            icon: "eye-off"
+                            pos_hint: {"center_y": .5}
+                            pos: password.width - self.width + dp(8), 0
+                            theme_text_color: "Hint"
+                            on_release:
+                                self.icon = "eye" if self.icon == "eye-off" else "eye-off"
+                                password.password = False if password.password is True else True
+                    MDRelativeLayout:
+                        MDFillRoundFlatIconButton:
+                            icon :"check"
+                            text: "OK"
+                            pos: self.parent.width-self.width, 0
+                            on_release: app.check_infos(username.text, password.text, username, password)
+
+<YourMessage>:
+    size_hint_y: None
+    height: c.height
+    size_hint_x: None
+    width: 250
+    md_bg_color: "lightgray"
+    radius: (0, 30, 30, 30)
+    MDBoxLayout:
+        orientation: "vertical"
+        id: c
+        adaptive_height: True
+        padding: 20
+        MDLabel:
+            text: "You"
+            size_hint_y: None
+            height: 15
+            font_size: 12
+        MDLabel:
+            size_hint_y: None
+            size_hint_x: None
+            width: 200
+            height: self.texture_size[1]
+            y: 25
+            x: 25
+            text: root.text
+            id: label
+
+<NewMessage>:
+    size_hint_y: None
+    height: c.height
+    MDBoxLayout:
+        MDWidget:
+        MDScreen:
+            size_hint_x: None
+            width: 250
+            md_bg_color: "purple"
+            radius: (30, 0, 30, 30)
+            MDBoxLayout:
+                id: c
+                orientation: "vertical"
+                adaptive_height: True
+                padding: 20
+                MDLabel:
+                    text: root.person
+                    size_hint_y: None
+                    height: 15
+                    font_size: 12
+                MDLabel:
+                    size_hint_y: None
+                    size_hint_x: None
+                    width: 200
+                    height: self.texture_size[1]
+                    y: 25
+                    x: 25
+                    text: root.text
+                    id: label
+
+<ChatItem>:
+    on_release: app.chat_with(self.text)
+    IconLeftWidget:
+        icon: "account"
