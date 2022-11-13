@@ -17,20 +17,22 @@ all_messages_data = []
 class Internet(object):
     def __init__(self):
         self.base_url = "https://bilal2008.pythonanywhere.com/"
-        self.login_url = self.base_url+"login/"
-        self.get_messages_url = self.base_url+"get/"
-        self.send_url = self.base_url+"send/"
+        self.login_url = self.base_url+"login"
+        self.get_messages_url = self.base_url+"get"
+        self.send_url = self.base_url+"send"
         self.status_url = self.base_url+"status/"
         #return self.get(self.base_url)
+    def post(self, url, data):
+        return requests.post(url, data=data).text
     def get(self, url):
         return requests.get(url).text
     def login(self, username, password):
-        answer = self.get(self.login_url+username+"/"+password)
+        answer = self.post(self.login_url, {"username": username, "password": password})
         if answer == "False":
             return False
         return True
     def get_messages(self, me, person):
-        answer = self.get(self.get_messages_url+me+"/"+person)
+        answer = self.post(self.get_messages_url, {"from": me, "person": person})
         return eval(answer)
     def get_status(self, name):
         return self.get(self.status_url+name)
@@ -45,7 +47,7 @@ class Internet(object):
         return a
     def send(self, msg, to):
         global current_user
-        self.get(self.send_url+current_user+"/"+to+"/"+msg)
+        self.post(self.send_url, {"from": current_user, "to": to, "msg": msg})
 
 class YourMessage(MDScreen, RectangularRippleBehavior, DeclarativeBehavior):
     text = StringProperty("Message")
@@ -60,14 +62,21 @@ class ChatItem(TwoLineIconListItem):
 class HomeScreen(MDScreen):
     """Home Screen"""
 
+class VideoVoiceCallScreen(MDScreen):
+    """Video Voice Call Screen"""
+
 class ListScreen(MDScreen):
     all_other_users = ListProperty()
     def on_enter(self, *args, **kwargs):
         global current_user
         for i in self.all_other_users:
-            self.all_other_users.remove(i)
             self.ids.chat_list.remove_widget(i)
-        all_persons = Internet().get_accounts()
+        self.all_other_users = []
+        try:
+            all_persons = Internet().get_accounts()
+        except:
+            toast("No Internet Connection!")
+            return "error"
         all_persons.remove([current_user, 1])
         self.all_other_users = []
         for i in all_persons:
@@ -77,7 +86,11 @@ class ListScreen(MDScreen):
         self.clock = Clock.schedule_interval(lambda x: threading.Thread(target=self.check_status_for_all).start(), 2)
     def check_status_for_all(self):
         global current_user
-        all_persons = Internet().get_accounts()
+        try:
+            all_persons = Internet().get_accounts()
+        except:
+            toast("No Internet Connection!")
+            return "error"
         all_persons.remove([current_user, 1])
         for x in all_persons:
             for y in self.all_other_users:
@@ -107,7 +120,11 @@ class ChatScreen(MDScreen):
         self._clock_.cancel()
         self.ids.spinner.active = True
     def check_status(self):
-        a = Internet().get_status(self.chatter)
+        try:
+            a = Internet().get_status(self.chatter)
+        except:
+            toast("No Internet Connection!")
+            return "error"
         if a != self.ids.title_bar.c:
             self.ids.title_bar.c = a
             self.ids.title_bar.md_bg_color = a
@@ -116,7 +133,11 @@ class ChatScreen(MDScreen):
             return "al klaar"
         global all_messages_data, current_user
         self.status = "checking"
-        a = Internet().get_messages(current_user, self.chatter)
+        try:
+            a = Internet().get_messages(current_user, self.chatter)
+        except:
+            toast("No Internet Connection!")
+            return "error"
         if a == all_messages_data:
             self.status = "free"
             self.ids.spinner.active = False
@@ -128,7 +149,11 @@ class ChatScreen(MDScreen):
             return "warning"
         self.status = "busy"
         global all_messages_data, current_user, all_messages
-        a = Internet().get_messages(current_user, self.chatter)
+        try:
+            a = Internet().get_messages(current_user, self.chatter)
+        except:
+            toast("No Internet Connection!")
+            return "error"
         all_messages_data = a
         self.status = "update"
     def update(self):
@@ -159,7 +184,11 @@ class ChatScreen(MDScreen):
         if text.replace(" ", "").replace("\n", "").replace("\t", "") == "":
             return False
         global all_messages, all_messages_data, current_user
-        Internet().send(text, self.chatter)
+        try:
+            Internet().send(text, self.chatter)
+        except:
+            toast("No Internet Connection!")
+            return "error"
         all_messages_data.append({"from": current_user, "to": self.chatter, "msg": text})
         self.clean()
         all_messages.append(YourMessage(text=text))
@@ -176,7 +205,12 @@ class Main(MDApp):
         global current_user
         return current_user
     def check_infos(self, username, password, username_widget, password_widget):
-        if Internet().login(username, password):
+        try:
+            a = Internet().login(username, password)
+        except:
+            toast("No Internet Connection!")
+            return "error"
+        if a:
             self.set_name(username)
             toast("Hallo "+self.get_name()+"!")
             self.screen_manager.current = "list"
@@ -191,19 +225,30 @@ class Main(MDApp):
     def set_focus(self, widget):
         widget.focus = True
     def on_pause(self, *args, **kwargs):
-        Internet().send(f"{self.get_name()} uit~~", "~~ALL")
+        try:
+            Internet().send(f"{self.get_name()} uit~~", "~~ALL")
+        except:
+            toast("No Internet Connection!")
+            return "error"
     def on_stop(self, *args, **kwargs):
-        Internet().send(f"{self.get_name()} uit~~", "~~ALL")
+        try:
+            Internet().send(f"{self.get_name()} uit~~", "~~ALL")
+        except:
+            toast("No Internet Connection!")
+            return "error"
     def build(self):
-        self.title = "Khalil Chat"
+        self.title = "Mem-Chat"
+        self.icon = "icon.png"
         self.theme_cls.primary_palette = "Purple"
         self.screen_manager = MDScreenManager()
         self.home_screen = HomeScreen(name="home")
         self.chat_screen = ChatScreen(name="chat")
         self.list_screen = ListScreen(name="list")
+        self.call_screen = VideoVoiceCallScreen(name="call")
         self.screen_manager.add_widget(self.home_screen)
         self.screen_manager.add_widget(self.chat_screen)
         self.screen_manager.add_widget(self.list_screen)
+        self.screen_manager.add_widget(self.call_screen)
         return self.screen_manager
 
 if __name__ == '__main__':
