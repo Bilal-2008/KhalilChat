@@ -62,9 +62,6 @@ class ChatItem(TwoLineIconListItem):
 class HomeScreen(MDScreen):
     """Home Screen"""
 
-class VideoVoiceCallScreen(MDScreen):
-    """Video Voice Call Screen"""
-
 class ListScreen(MDScreen):
     all_other_users = ListProperty()
     def on_enter(self, *args, **kwargs):
@@ -244,11 +241,9 @@ class Main(MDApp):
         self.home_screen = HomeScreen(name="home")
         self.chat_screen = ChatScreen(name="chat")
         self.list_screen = ListScreen(name="list")
-        self.call_screen = VideoVoiceCallScreen(name="call")
         self.screen_manager.add_widget(self.home_screen)
         self.screen_manager.add_widget(self.chat_screen)
         self.screen_manager.add_widget(self.list_screen)
-        self.screen_manager.add_widget(self.call_screen)
         return self.screen_manager
 
 if __name__ == '__main__':

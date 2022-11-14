@@ -25,14 +25,6 @@
                 icon: "arrow-right"
                 md_bg_color: app.theme_cls.primary_color
                 x: self.width
-    MDFloatingActionButton:
-        elevation: 0
-        icon: "camera"
-        pos: self.parent.width-self.width-20, 20
-        md_bg_color: app.theme_cls.primary_color
-        on_release:
-            self.elevation = 0
-            app.screen_manager.current = "call"
 
 <ChatScreen>:
     on_pre_enter: title_bar.title = self.chatter
@@ -151,15 +143,6 @@
                             pos: self.parent.width-self.width, 0
                             on_release: app.check_infos(username.text, password.text, username, password)
 
-<VideoVoiceCallScreen>:
-    MDBoxLayout:
-        orientation: "vertical"
-        MDTopAppBar:
-            title: "Video Voice Call"
-            left_action_items: [["arrow-left", lambda x: app.chat_screen.back(app.screen_manager)]]
-        MDCamera:
-            id: camera
-
 <YourMessage>:
     size_hint_y: None
     height: c.height
@@ -221,20 +204,6 @@
     on_release: app.chat_with(self.text)
     IconLeftWidget:
         icon: "account"
-
-<MDCamera@MDScreen>:
-    play: True
-    Camera:
-        id: c
-        play: root.play
-    MDFloatingActionButton:
-        elevation: 0
-        icon: "camera"
-        md_bg_color: app.theme_cls.primary_color
-        pos: 10, 10
-        on_release:
-            self.elevation = 0
-            c.play = not c.play
 
 <MDDraggable@DragBehavior+MDIconButton>:
     drag_timeout: 10000000
