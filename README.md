@@ -4,7 +4,7 @@ Dit is de alpha versie van een chat applicatie
 ```
 git clone https://www.github.com/Bilal-2008/KhalilChat.git
 cd KhalilChat/
-pip3 install kivy kivymd requests datetime
+pip3 install -r requirements.txt
 python3 main.py
 ```
 Doei!
