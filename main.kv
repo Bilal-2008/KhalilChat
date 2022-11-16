@@ -9,22 +9,6 @@
         MDScrollView:
             MDList:
                 id: chat_list
-        MDRelativeLayout:
-            pos_hint: {"center_x": .5}
-            md_bg_color: (.8, .8, .8)
-            size_hint_y: None
-            size_hint_x: None
-            width: 250
-            height: 50
-            radius: 25
-            MDLabel:
-                halign: "center"
-                text: "Drop to the right"
-            MDDraggable:
-                elevation: 0
-                icon: "arrow-right"
-                md_bg_color: app.theme_cls.primary_color
-                x: self.width
 
 <ChatScreen>:
     on_pre_enter: title_bar.title = self.chatter
@@ -35,6 +19,8 @@
         size: root.width/4, root.height/4
         pos_hint: {'center_x': .5, 'center_y': .5}
         active: True
+        line_width: 20
+        palette: [app.theme_cls.primary_color, (1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 0, 1), (0, 1, 1, 1)]
         id: spinner
     MDBoxLayout:
         orientation: "vertical"
@@ -85,7 +71,8 @@
         MDTopAppBar:
             title: "Mem-Chat"
         MDFloatLayout:
-            MDCard:
+            id: floatlayout
+            MDScreen:
                 size_hint: None, None
                 size: 250, 350
                 elevation: 0
@@ -142,6 +129,86 @@
                             text: "OK"
                             pos: self.parent.width-self.width, 0
                             on_release: app.check_infos(username.text, password.text, username, password)
+    MDIconButton:
+        md_bg_color: app.theme_cls.primary_color
+        icon: "account-plus"
+        x: self.parent.width-self.width-20
+        y: 20
+        on_release:
+            username.text = ""
+            password.text = ""
+            app.screen_manager.current = "register"
+
+<RegisterScreen>:
+    on_enter:
+        a = (Animation(duration=.5, opacity=1)+Animation(duration=2, opacity=0)+Animation(duration=2, opacity=1)+Animation(duration=.5, opacity=1))
+        a.repeat = True
+        a.start(hallo_label)
+        Clock.schedule_once(lambda x: app.set_focus(username), 1)
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Register"
+            left_action_items: [["arrow-left", lambda x: root.back(app.screen_manager)]]
+        MDFloatLayout:
+            id: floatlayout
+            MDScreen:
+                size_hint: None, None
+                size: 250, 350
+                elevation: 0
+                radius: 20
+                md_bg_color: app.theme_cls.primary_color[0], app.theme_cls.primary_color[1], app.theme_cls.primary_color[2], .5
+                pos_hint: {"center_x": .5, "center_y": .5}
+                #ripple_behavior: True
+                MDBoxLayout:
+                    orientation: "vertical"
+                    padding: 20
+                    spacing: 20
+                    MDLabel:
+                        bold: True
+                        id: hallo_label
+                        text: "Hallo!"
+                        theme_text_color: "Custom"
+                        text_color: "white"
+                        halign: "center"
+                        font_size: 50
+                        size_hint_y: None
+                        height: 75
+                    MDTextField:
+                        id: username
+                        hint_text: "Gebruikersnaam:"
+                        mode: "fill"
+                        focus: False
+                        icon_left: "account"
+                        on_text_validate:
+                            password.focus = True
+                            self.focus = False
+                    MDRelativeLayout:
+                        size_hint_y: None
+                        height: password.height
+                        MDTextField:
+                            id: password
+                            hint_text: "Wachtwoord:"
+                            text: ""
+                            password: True
+                            focus: False
+                            mode: "fill"
+                            on_text_validate: app.register_infos(app, username.text, self.text, username, self)
+                            icon_left: "key-variant"
+                        MDIconButton:
+                            icon: "eye-off"
+                            pos_hint: {"center_y": .5}
+                            pos: password.width - self.width + dp(8), 0
+                            theme_text_color: "Hint"
+                            on_release:
+                                self.icon = "eye" if self.icon == "eye-off" else "eye-off"
+                                password.password = False if password.password is True else True
+                    MDRelativeLayout:
+                        MDFillRoundFlatIconButton:
+                            icon :"check"
+                            text: "OK"
+                            pos: self.parent.width-self.width, 0
+                            on_release: app.register_infos(app, username.text, password.text, username, password)
 
 <YourMessage>:
     size_hint_y: None
@@ -169,6 +236,13 @@
             x: 25
             text: root.text
             id: label
+        MDLabel:
+            font_size: 12
+            size_hint_y: None
+            height: 15
+            text: root.date+" --- "+root.time
+            halign: "center"
+            x: self.parent.width - self.width - 2
 
 <NewMessage>:
     size_hint_y: None
@@ -199,13 +273,26 @@
                     x: 25
                     text: root.text
                     id: label
+                MDLabel:
+                    font_size: 12
+                    size_hint_y: None
+                    height: 15
+                    text: root.date+" --- "+root.time
+                    halign: "center"
+                    x: self.parent.width - self.width - 2
 
 <ChatItem>:
     on_release: app.chat_with(self.text)
     IconLeftWidget:
         icon: "account"
 
-<MDDraggable@DragBehavior+MDIconButton>:
-    drag_timeout: 10000000
-    drag_distance: 0
-    drag_rectangle: ((self.parent.parent.parent.width-250)/2), (self.parent.parent.parent.height-50), 250, 50
+<NewDate>:
+    md_bg_color: (0, 0, 1, 1)
+    size_hint_y: None
+    height: 35
+    MDLabel:
+        halign: "center"
+        font_size: 30
+        text: root.date
+        theme_text_color: "Custom"
+        text_color: "white"

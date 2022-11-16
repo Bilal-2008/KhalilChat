@@ -4,10 +4,14 @@ from kivymd.uix.screen import MDScreen
 from kivymd.uix.list import *
 from kivymd.uix.behaviors import *
 from kivymd.toast import toast
+from kivymd.uix.banner import MDBanner
 from kivy.properties import *
 from kivy.clock import Clock
 import requests
 import threading
+from datetime import datetime as dt
+
+__VERSIE__ = "2.0.0"
 
 current_user = ""
 
@@ -18,14 +22,24 @@ class Internet(object):
     def __init__(self):
         self.base_url = "https://bilal2008.pythonanywhere.com/"
         self.login_url = self.base_url+"login"
+        self.register_url = self.base_url+"reg"
         self.get_messages_url = self.base_url+"get"
         self.send_url = self.base_url+"send"
         self.status_url = self.base_url+"status/"
+        self.version_url = self.base_url+"version"
         #return self.get(self.base_url)
+    def get_new_version(self):
+        return self.get(self.version_url)
     def post(self, url, data):
         return requests.post(url, data=data).text
     def get(self, url):
         return requests.get(url).text
+    def register(self, username, password):
+        answer = self.post(self.register_url, {"name": username, "password": password})
+        print(answer)
+        if answer == "False":
+            return False
+        return True
     def login(self, username, password):
         answer = self.post(self.login_url, {"username": username, "password": password})
         if answer == "False":
@@ -51,16 +65,40 @@ class Internet(object):
 
 class YourMessage(MDScreen, RectangularRippleBehavior, DeclarativeBehavior):
     text = StringProperty("Message")
+    date = StringProperty("1/1/2000")
+    time = StringProperty("00:00:00")
 
 class NewMessage(MDScreen, RectangularRippleBehavior, DeclarativeBehavior):
     text = StringProperty("Message")
     person = StringProperty("Khalil")
+    date = StringProperty("1/1/2000")
+    time = StringProperty("00:00:00")
+
+class NewDate(MDScreen):
+    #New Date Separator
+    date = StringProperty("1/1/2000")
 
 class ChatItem(TwoLineIconListItem):
     """Chat list item (cli)"""
 
+class RegisterScreen(MDScreen):
+    def back(self, app):
+        app.current="home"
+
 class HomeScreen(MDScreen):
-    """Home Screen"""
+    def check_version(self, app):
+        global __VERSIE__
+        try:
+            new_version = Internet().get_new_version()
+        except Exception as e:
+            print(e)
+            return "error"
+        if __VERSIE__ == new_version:
+            return "OK"
+        else:
+            self.banner = MDBanner(md_bg_color=app.theme_cls.accent_color, text=["Nieuwe Versie!", "Er is een nieuwe versie: {}".format(new_version)], over_widget=self.ids.floatlayout, left_action=["OK", lambda x: self.banner.hide()], type="two-line")
+            self.add_widget(self.banner)
+            self.banner.show()
 
 class ListScreen(MDScreen):
     all_other_users = ListProperty()
@@ -158,11 +196,15 @@ class ChatScreen(MDScreen):
             return "i'm waiting"
         global all_messages, all_messages_data
         self.all_ = []
+        old_date = ""
         for x in all_messages_data:
+            if x["date"] != old_date:
+                self.all_.append(NewDate(date=x["date"]))
+                old_date = x["date"]
             if x["from"] == current_user:
-                self.all_.append(YourMessage(text=x["msg"]))
+                self.all_.append(YourMessage(text=x["msg"], time=x["time"], date=x["date"]))
             else:
-                self.all_.append(NewMessage(text=x["msg"], person=x["from"]))
+                self.all_.append(NewMessage(text=x["msg"], person=x["from"], time=x["time"], date=x["date"]))
         self.clean()
         all_messages = self.all_
         self.refresh()
@@ -186,9 +228,14 @@ class ChatScreen(MDScreen):
         except:
             toast("No Internet Connection!")
             return "error"
-        all_messages_data.append({"from": current_user, "to": self.chatter, "msg": text})
+        all_messages_data.append({"from": current_user, "to": self.chatter, "msg": text, "date": dt.now().strftime("%d/%m/%Y"), "time": dt.now().strftime('%H:%M')})
         self.clean()
-        all_messages.append(YourMessage(text=text))
+        try:
+            if all_messages[::-1][0].date != dt.now().strftime("%d/%m/%Y"):
+                all_messages.append(NewDate(date=dt.now().strftime("%d/%m/%Y")))
+        except:
+            all_messages.append(NewDate(date=dt.now().strftime("%d/%m/%Y")))
+        all_messages.append(YourMessage(text=text, date=dt.now().strftime("%d/%m/%Y"), time=dt.now().strftime('%H:%M')))
         self.refresh()
 
 class Main(MDApp):
@@ -219,6 +266,24 @@ class Main(MDApp):
             toast("Gebruikersnaam of wachtwoord is fout!")
             self.set_focus(username_widget)
         password_widget.text, username_widget.text = "", ""
+    def register_infos(self, app, username, password, username_widget, password_widget):
+        try:
+            a = Internet().register(username, password)
+        except:
+            toast("No Internet Connection!")
+            return "error"
+        if a:
+            self.set_name(username)
+            toast("Hallo "+self.get_name()+"!")
+            self.screen_manager.current = "list"
+            self.set_focus(self.chat_screen.ids.message)
+            Internet().send(f"{self.get_name()} aan~~", "~~ALL")
+        else:
+            username_widget.error = True
+            password_widget.error = True
+            toast("Dit informaties zijn al er!")
+            self.set_focus(username_widget)
+        password_widget.text, username_widget.text = "", ""
     def set_focus(self, widget):
         widget.focus = True
     def on_pause(self, *args, **kwargs):
@@ -241,9 +306,12 @@ class Main(MDApp):
         self.home_screen = HomeScreen(name="home")
         self.chat_screen = ChatScreen(name="chat")
         self.list_screen = ListScreen(name="list")
+        self.register_screen = RegisterScreen(name="register")
         self.screen_manager.add_widget(self.home_screen)
         self.screen_manager.add_widget(self.chat_screen)
         self.screen_manager.add_widget(self.list_screen)
+        self.screen_manager.add_widget(self.register_screen)
+        self.home_screen.check_version(self)
         return self.screen_manager
 
 if __name__ == '__main__':
