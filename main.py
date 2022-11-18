@@ -5,13 +5,16 @@ from kivymd.uix.list import *
 from kivymd.uix.behaviors import *
 from kivymd.toast import toast
 from kivymd.uix.banner import MDBanner
+from kivymd.uix.filemanager import MDFileManager
 from kivy.properties import *
 from kivy.clock import Clock
+from kivy.core.window import Window
 import requests
 import threading
 from datetime import datetime as dt
+import os
 
-__VERSIE__ = "2.0.0"
+__VERSIE__ = "2.1.0"
 
 current_user = ""
 
@@ -27,16 +30,20 @@ class Internet(object):
         self.send_url = self.base_url+"send"
         self.status_url = self.base_url+"status/"
         self.version_url = self.base_url+"version"
+        self.file_url = self.base_url+"send_file"
         #return self.get(self.base_url)
     def get_new_version(self):
         return self.get(self.version_url)
     def post(self, url, data):
         return requests.post(url, data=data).text
+    def send_file(self, to, file):
+        global current_user
+        a = requests.post(self.file_url, data={"from": current_user, "to": to}, files={"file": open(file, "rb")}).text
+        return eval(a)
     def get(self, url):
         return requests.get(url).text
     def register(self, username, password):
         answer = self.post(self.register_url, {"name": username, "password": password})
-        print(answer)
         if answer == "False":
             return False
         return True
@@ -62,29 +69,34 @@ class Internet(object):
     def send(self, msg, to):
         global current_user
         self.post(self.send_url, {"from": current_user, "to": to, "msg": msg})
-
 class YourMessage(MDScreen, RectangularRippleBehavior, DeclarativeBehavior):
     text = StringProperty("Message")
     date = StringProperty("1/1/2000")
     time = StringProperty("00:00:00")
-
 class NewMessage(MDScreen, RectangularRippleBehavior, DeclarativeBehavior):
     text = StringProperty("Message")
     person = StringProperty("Khalil")
     date = StringProperty("1/1/2000")
     time = StringProperty("00:00:00")
-
+class YourMessageImage(MDScreen, RectangularRippleBehavior, DeclarativeBehavior):
+    text = StringProperty("Message")
+    date = StringProperty("1/1/2000")
+    time = StringProperty("00:00:00")
+    image = StringProperty("")
+class NewMessageImage(MDScreen, RectangularRippleBehavior, DeclarativeBehavior):
+    text = StringProperty("Message")
+    person = StringProperty("Khalil")
+    date = StringProperty("1/1/2000")
+    time = StringProperty("00:00:00")
+    image = StringProperty("")
 class NewDate(MDScreen):
     #New Date Separator
     date = StringProperty("1/1/2000")
-
 class ChatItem(TwoLineIconListItem):
     """Chat list item (cli)"""
-
 class RegisterScreen(MDScreen):
     def back(self, app):
         app.current="home"
-
 class HomeScreen(MDScreen):
     def check_version(self, app):
         global __VERSIE__
@@ -99,7 +111,6 @@ class HomeScreen(MDScreen):
             self.banner = MDBanner(md_bg_color=app.theme_cls.accent_color, text=["Nieuwe Versie!", "Er is een nieuwe versie: {}".format(new_version)], over_widget=self.ids.floatlayout, left_action=["OK", lambda x: self.banner.hide()], type="two-line")
             self.add_widget(self.banner)
             self.banner.show()
-
 class ListScreen(MDScreen):
     all_other_users = ListProperty()
     def on_enter(self, *args, **kwargs):
@@ -137,10 +148,30 @@ class ListScreen(MDScreen):
                         break
     def on_leave(self, *args, **kwargs):
         self.clock.cancel()
-
 class ChatScreen(MDScreen):
     status ="free"
     chatter = StringProperty("")
+    def __init__(self, *args, **kwargs):
+        super(ChatScreen, self).__init__(*args, **kwargs)
+        self.file_manager = MDFileManager(select_path=lambda x: self.image_choosed(x), preview=True, selector="file", ext=[".jpg", ".png", ".gif", ".jpeg", ".ico"])
+    def image_choosed(self, path):
+        self.file_manager.close()
+        #self.all_.append(NewMessageImage(image=x["img"], person=x["from"], time=x["time"], date=x["date"]))
+        global all_messages, all_messages_data, current_user
+        try:
+            a = Internet().send_file(self.chatter, path)
+        except:
+            toast("No Internet Connection!")
+            return "error"
+        all_messages_data.append({"from": current_user, "to": self.chatter, "file": a["file"], "date": dt.now().strftime("%d/%m/%Y"), "time": dt.now().strftime('%H:%M')})
+        self.clean()
+        try:
+            if all_messages[::-1][0].date != dt.now().strftime("%d/%m/%Y"):
+                all_messages.append(NewDate(date=dt.now().strftime("%d/%m/%Y")))
+        except:
+            all_messages.append(NewDate(date=dt.now().strftime("%d/%m/%Y")))
+        all_messages.append(YourMessageImage(image=a["file"], date=dt.now().strftime("%d/%m/%Y"), time=dt.now().strftime('%H:%M')))
+        self.refresh()
     def back(self, m):
         m.current = "list"
     def on_enter(self, *args, **kwargs):
@@ -201,10 +232,16 @@ class ChatScreen(MDScreen):
             if x["date"] != old_date:
                 self.all_.append(NewDate(date=x["date"]))
                 old_date = x["date"]
-            if x["from"] == current_user:
-                self.all_.append(YourMessage(text=x["msg"], time=x["time"], date=x["date"]))
-            else:
-                self.all_.append(NewMessage(text=x["msg"], person=x["from"], time=x["time"], date=x["date"]))
+            try:
+                if x["from"] == current_user:
+                    self.all_.append(YourMessage(text=x["msg"], time=x["time"], date=x["date"]))
+                else:
+                    self.all_.append(NewMessage(text=x["msg"], person=x["from"], time=x["time"], date=x["date"]))
+            except:
+                if x["from"] == current_user:
+                    self.all_.append(YourMessageImage(image=x["file"], time=x["time"], date=x["date"]))
+                else:
+                    self.all_.append(NewMessageImage(image=x["file"], person=x["from"], time=x["time"], date=x["date"]))
         self.clean()
         all_messages = self.all_
         self.refresh()
@@ -237,6 +274,8 @@ class ChatScreen(MDScreen):
             all_messages.append(NewDate(date=dt.now().strftime("%d/%m/%Y")))
         all_messages.append(YourMessage(text=text, date=dt.now().strftime("%d/%m/%Y"), time=dt.now().strftime('%H:%M')))
         self.refresh()
+    def send_file(self):
+        self.file_manager.show(os.path.expanduser("~"))
 
 class Main(MDApp):
     def chat_with(self, name):
@@ -315,5 +354,6 @@ class Main(MDApp):
         return self.screen_manager
 
 if __name__ == '__main__':
+    Window.maximize()
     APP = Main()
     APP.run()

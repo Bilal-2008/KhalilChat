@@ -34,19 +34,32 @@
             spacing: 20
             size_hint_y: None
             adaptive_height: True
+            MDIconButton:
+                icon: "plus"
+                md_bg_color: app.theme_cls.primary_color
+                theme_icon_color: "Custom"
+                icon_color: "white"
+                pos_hint: {"center_x": .5, "center_y": .5}
+                on_release:
+                    root.send_file()
+                    Clock.schedule_once(lambda x: app.set_focus(message))
             MDTextField:
                 id: message
                 hint_text: "Jouw bericht:"
                 mode: "round"
                 focus: True
+                size_hint_y: None
+                height: 50
                 #multiline: True
                 on_text_validate:
                     root.send(self.text)
                     self.text = ""
                     Clock.schedule_once(lambda x: app.set_focus(self))
-            MDFillRoundFlatIconButton:
+            MDIconButton:
                 icon: "send"
-                text: "Send"
+                md_bg_color: app.theme_cls.primary_color
+                theme_icon_color: "Custom"
+                icon_color: "white"
                 pos_hint: {"center_x": .5, "center_y": .5}
                 on_release:
                     root.send(message.text)
@@ -65,7 +78,8 @@
         a = (Animation(duration=.5, opacity=1)+Animation(duration=2, opacity=0)+Animation(duration=2, opacity=1)+Animation(duration=.5, opacity=1))
         a.repeat = True
         a.start(hallo_label)
-        Clock.schedule_once(lambda x: app.set_focus(username), 1)
+        root.clock = Clock.schedule_once(lambda x: app.set_focus(username), 1)
+    on_leave: root.clock.cancel()
     MDBoxLayout:
         orientation: "vertical"
         MDTopAppBar:
@@ -132,6 +146,8 @@
     MDIconButton:
         md_bg_color: app.theme_cls.primary_color
         icon: "account-plus"
+        theme_icon_color: "Custom"
+        icon_color: "white"
         x: self.parent.width-self.width-20
         y: 20
         on_release:
@@ -144,7 +160,8 @@
         a = (Animation(duration=.5, opacity=1)+Animation(duration=2, opacity=0)+Animation(duration=2, opacity=1)+Animation(duration=.5, opacity=1))
         a.repeat = True
         a.start(hallo_label)
-        Clock.schedule_once(lambda x: app.set_focus(username), 1)
+        root.clock = Clock.schedule_once(lambda x: app.set_focus(username), 1)
+    on_leave: root.clock.cancel()
     MDBoxLayout:
         orientation: "vertical"
         MDTopAppBar:
@@ -273,6 +290,71 @@
                     x: 25
                     text: root.text
                     id: label
+                MDLabel:
+                    font_size: 12
+                    size_hint_y: None
+                    height: 15
+                    text: root.date+" --- "+root.time
+                    halign: "center"
+                    x: self.parent.width - self.width - 2
+
+<YourMessageImage>:
+    size_hint_y: None
+    height: c.height
+    size_hint_x: None
+    width: 250
+    md_bg_color: "lightgray"
+    radius: (0, 30, 30, 30)
+    MDBoxLayout:
+        orientation: "vertical"
+        id: c
+        adaptive_height: True
+        padding: 20
+        MDLabel:
+            text: "You"
+            size_hint_y: None
+            height: 15
+            font_size: 12
+        FitImage:
+            size_hint: None, None
+            width: 200
+            height: 300
+            source: root.image
+            pos_hint: {"center_y": .5, "center_x": .5}
+        MDLabel:
+            font_size: 12
+            size_hint_y: None
+            height: 15
+            text: root.date+" --- "+root.time
+            halign: "center"
+            x: self.parent.width - self.width - 2
+
+<NewMessageImage>:
+    size_hint_y: None
+    height: c.height
+    MDBoxLayout:
+        MDWidget:
+        MDScreen:
+            size_hint_x: None
+            width: 250
+            md_bg_color: "purple"
+            radius: (30, 0, 30, 30)
+            MDBoxLayout:
+                id: c
+                orientation: "vertical"
+                adaptive_height: True
+                padding: 20
+                MDLabel:
+                    text: root.person
+                    size_hint_y: None
+                    height: 15
+                    font_size: 12
+                FitImage:
+                    size_hint: None, None
+                    width: 200
+                    height: 300
+                    source: root.image
+                    pos_hint: {"center_y": .5, "center_x": .5}
                 MDLabel:
                     font_size: 12
                     size_hint_y: None
